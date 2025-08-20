@@ -784,39 +784,33 @@ struct __get_object_numeric_type<ADScalar<A2D_complex_t<double>, N>> {
   using type = ADScalar<A2D_complex_t<double>, N>;
 };
 
-template <typename T, int N,
-          std::enable_if_t<is_numeric_type<T>::value, bool> = true>
+template <typename T, int N>
 ADScalar<T, N>& get_data(ADScalar<T, N>& value) {
   return value;
 }
 
-template <typename T, int N,
-          std::enable_if_t<is_numeric_type<T>::value, bool> = true>
+template <typename T, int N>
 const ADScalar<T, N>& get_data(const ADScalar<T, N>& value) {
   return value;
 }
 
-template <typename T, int N,
-          std::enable_if_t<is_numeric_type<T>::value, bool> = true>
+template <typename T, int N>
 A2D_FUNCTION ADScalar<T, N>& get_data(ADObj<ADScalar<T, N>>& value) {
   return value.value();
 }
 
-template <typename T, int N,
-          std::enable_if_t<is_numeric_type<T>::value, bool> = true>
+template <typename T, int N>
 A2D_FUNCTION const ADScalar<T, N>& get_data(
     const ADObj<ADScalar<T, N>>& value) {
   return value.value();
 }
 
-template <typename T, int N,
-          std::enable_if_t<is_numeric_type<T>::value, bool> = true>
+template <typename T, int N>
 A2D_FUNCTION ADScalar<T, N>& get_data(A2DObj<ADScalar<T, N>>& value) {
   return value.value();
 }
 
-template <typename T, int N,
-          std::enable_if_t<is_numeric_type<T>::value, bool> = true>
+template <typename T, int N>
 A2D_FUNCTION const ADScalar<T, N>& get_data(
     const A2DObj<ADScalar<T, N>>& value) {
   return value.value();

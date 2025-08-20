@@ -8,16 +8,23 @@
 
 namespace A2D {
 
-template <class T, int N>
-class ADScalar {
- public:
+// Detections for scalar types
+template <class> struct is_adscalar : std::false_type {};
+template <class U, int M>
+struct is_adscalar<ADScalar<U, M>> : std::true_type {};
+template <class X> inline constexpr bool is_adscalar_v = is_adscalar<X>::value;
+
+template <class T, int N> class ADScalar {
+public:
   using type = T;
 
   A2D_FUNCTION ADScalar() {}
 
+  // Value constructor (sets a value, zeros derivatives)
   template <typename R, typename = std::enable_if_t<is_scalar_type<R>::value>>
   A2D_FUNCTION ADScalar(const R value) : value(value), deriv{0.0} {}
 
+  // Value and derivative constructor (sets both)
   template <typename R, typename = std::enable_if_t<is_scalar_type<R>::value>>
   A2D_FUNCTION ADScalar(const R value, const T d[]) : value(value) {
     for (int i = 0; i < N; i++) {
@@ -25,12 +32,39 @@ class ADScalar {
     }
   }
 
+  // Copy constructor (sets value and derivatives from another ADScalar)
   A2D_FUNCTION ADScalar(const ADScalar<T, N> &r) : value(r.value) {
     for (int i = 0; i < N; i++) {
       deriv[i] = r.deriv[i];
     }
   }
 
+  // Conversion constructor
+  //  - disabled when R == T, which forces copy constructor for same type copies
+  //  - enabled when conversion or lifting makes sense
+  template <typename R, std::enable_if_t<!std::is_same_v<R, T> &&
+                                             (std::is_convertible_v<R, T> ||
+                                              is_adscalar_v<T>),
+                                         int> = 0>
+  explicit ADScalar(const ADScalar<R, N> &r) {
+
+    if constexpr (is_adscalar_v<T>) {
+      // Lifting: occurs if T is an ADScalar<...> type
+      // copy the entire ADScalar r into 'value' for the current ADScalar
+      value = r; // invokes inner ADScalar's conversion/copy
+      for (int i = 0; i < N; ++i) {
+        deriv[i] = T(0.0); // outer derivatives zeroed
+      }
+    } else {
+      // Componentwise: T is a plain scalar-like type (e.g. double)
+      value = static_cast<T>(r.value);
+      for (int i = 0; i < N; ++i) {
+        deriv[i] = static_cast<T>(r.deriv[i]);
+      }
+    }
+  }
+
+  // Assignment operator
   template <typename R, typename = std::enable_if_t<is_scalar_type<R>::value>>
   A2D_FUNCTION inline ADScalar<T, N> &operator=(const R &r) {
     value = r;
@@ -145,7 +179,7 @@ class ADScalar {
       negderivs[i] = -deriv[i];
     }
     return ADScalar<T, N>(-value,
-                          negderivs);  // Return by value, not by reference
+                          negderivs); // Return by value, not by reference
   }
 
   //  private:
@@ -359,6 +393,6 @@ A2D_FUNCTION inline ADScalar<X, M> cos(const ADScalar<X, M> &r) {
 //   using type = ADScalar<A2D_complex_t<double>,N>;
 // };
 
-}  // namespace A2D
+} // namespace A2D
 
-#endif  // A2D_ADSCALAR_H
+#endif // A2D_ADSCALAR_H
