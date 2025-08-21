@@ -24,13 +24,16 @@ public:
   template <typename R, typename = std::enable_if_t<is_scalar_type<R>::value>>
   A2D_FUNCTION ADScalar(const R value) : value(value), deriv{0.0} {}
 
-  // Value and derivative constructor (sets both)
-  template <typename R, typename = std::enable_if_t<is_scalar_type<R>::value>>
-  A2D_FUNCTION ADScalar(const R value, const T d[]) : value(value) {
+  // Value and derivative constructor (sets both, and works regardless of the type T)
+  A2D_FUNCTION ADScalar(const T& value, const T d[]) : value(value) {
     for (int i = 0; i < N; i++) {
       deriv[i] = d[i];
     }
   }
+
+  // Scalar-only version for ADScalar constructor for a common occasion
+  template <typename R, typename = std::enable_if_t<is_scalar_type<R>::value>>
+  ADScalar(const R val, const T d[]) : ADScalar(T(val), d) {}
 
   // Copy constructor (sets value and derivatives from another ADScalar)
   A2D_FUNCTION ADScalar(const ADScalar<T, N> &r) : value(r.value) {
