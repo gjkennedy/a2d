@@ -24,8 +24,9 @@ public:
   template <typename R, typename = std::enable_if_t<is_scalar_type<R>::value>>
   A2D_FUNCTION ADScalar(const R value) : value(value), deriv{0.0} {}
 
-  // Value and derivative constructor (sets both, and works regardless of the type T)
-  A2D_FUNCTION ADScalar(const T& value, const T d[]) : value(value) {
+  // Value and derivative constructor (sets both, and works regardless of the
+  // type T)
+  A2D_FUNCTION ADScalar(const T &value, const T d[]) : value(value) {
     for (int i = 0; i < N; i++) {
       deriv[i] = d[i];
     }
