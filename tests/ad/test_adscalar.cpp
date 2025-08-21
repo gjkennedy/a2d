@@ -6,8 +6,9 @@
 
 using namespace A2D;
 
-template <typename T> class ADScalarTest : public A2D::Test::A2DTest<T, T, T> {
-public:
+template <typename T>
+class ADScalarTest : public A2D::Test::A2DTest<T, T, T> {
+ public:
   using Input = VarTuple<T, T>;
   using Output = VarTuple<T, T>;
 
@@ -52,7 +53,7 @@ public:
 
 template <typename T>
 class ADScalarNestedTest : public A2D::Test::A2DTest<T, T, T> {
-public:
+ public:
   using Input = VarTuple<T, T>;
   using Output = VarTuple<T, T>;
 
@@ -65,12 +66,11 @@ public:
     ADScalar<T, 1> ad_x(val);
     ADScalar<ADScalar<T, 1>, 1> nested_x(ad_x);
     ADScalar<ADScalar<T, 1>, 1> nested_y = nested_x * nested_x;
-    return MakeVarTuple<T>(nested_y.value.value); // Unwrap both layers
+    return MakeVarTuple<T>(nested_y.value.value);  // Unwrap both layers
   }
 
   // Compute the derivative: df/dx = 2x using nested ADScalar
   void deriv(const Output &seed, const Input &x, Input &g) override {
-
     T val;
     x.get_values(val);
     T dy;
@@ -84,7 +84,7 @@ public:
     ADScalar<ADScalar<T, 1>, 1> nested_y = nested_x * nested_x;
 
     g.set_values(
-        nested_y.value.deriv[0]); // Unwrap derivative from inner ADScalar
+        nested_y.value.deriv[0]);  // Unwrap derivative from inner ADScalar
   }
 
   // Compute the second derivative: d^2f/dx^2 = 2 using nested ADScalar
@@ -121,8 +121,8 @@ bool ADScalarTestAll(bool component, bool write_output) {
 }
 
 int main(int argc, char *argv[]) {
-  bool component = false;    // Default to a projection test
-  bool write_output = false; // Don't write output;
+  bool component = false;     // Default to a projection test
+  bool write_output = false;  // Don't write output;
 
   // Check for the write_output flag
   for (int i = 0; i < argc; i++) {
