@@ -275,6 +275,11 @@ A2D_FUNCTION T fabs(T val) {
 }
 
 template <typename T, std::enable_if_t<is_scalar_type<T>::value, bool> = true>
+A2D_FUNCTION T fsgn(T val) {
+  return std::copysign(1.0, val);
+}
+
+template <typename T, std::enable_if_t<is_scalar_type<T>::value, bool> = true>
 A2D_FUNCTION T sqrt(T val) {
 #ifndef __CUDACC__
   return std::sqrt(val);
@@ -338,7 +343,7 @@ A2D_FUNCTION T acos(T val) {
 }
 
 template <class ForwardIt, class T>
-A2D_FUNCTION void fill(ForwardIt first, ForwardIt last, const T& value) {
+A2D_FUNCTION void fill(ForwardIt first, ForwardIt last, const T &value) {
 #ifdef __CUDACC__
   thrust::fill(first, last, value);
 #else

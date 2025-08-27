@@ -20,7 +20,7 @@ A2D_FUNCTION void SymMatVecCore3x3(const T A[], const T x[], T b[]) {
 }
 
 template <typename T, bool additive = false>
-A2D_FUNCTION void SymMatVecCoreScale3x3(const T& scale, const T A[],
+A2D_FUNCTION void SymMatVecCoreScale3x3(const T &scale, const T A[],
                                         const T x[], T b[]) {
   // compute b = A * x
   if constexpr (additive) {

@@ -313,6 +313,21 @@ A2D_FUNCTION inline ADScalar<X, M> operator/(const ADScalar<X, M> &l,
   return out;
 }
 
+// sign function
+// template <class X, int M>
+// A2D_FUNCTION inline ADScalar<X, M> fsgn(const ADScalar<X, M> &r) {
+//   X sign = 1.0;
+//   if (r.value < 0.0) {
+//     sign = -1.0;
+//   }
+//   // device compatible fsgn
+//   ADScalar<X, M> out(::fsgn(r.value));
+//   for (int i = 0; i < M; i++) {
+//     out.deriv[i] = sign * r.deriv[i];
+//   }
+//   return out;
+// }
+
 // fabs, sqrt
 template <class X, int M>
 A2D_FUNCTION inline ADScalar<X, M> fabs(const ADScalar<X, M> &r) {
@@ -366,6 +381,17 @@ A2D_FUNCTION inline ADScalar<X, M> exp(const ADScalar<X, M> &r) {
 }
 
 template <class X, int M>
+A2D_FUNCTION inline ADScalar<X, M> log(const ADScalar<X, M> &r) {
+  // device compatible log
+  ADScalar<X, M> out(::log(r.value));
+  X inv = 1.0 / r.value;
+  for (int i = 0; i < M; i++) {
+    out.deriv[i] = inv * r.deriv[i];
+  }
+  return out;
+}
+
+template <class X, int M>
 A2D_FUNCTION inline ADScalar<X, M> sin(const ADScalar<X, M> &r) {
   // device compatible sin, cos
   ADScalar<X, M> out(::sin(r.value));
@@ -387,7 +413,42 @@ A2D_FUNCTION inline ADScalar<X, M> cos(const ADScalar<X, M> &r) {
   return out;
 }
 
-// for A2D Objects
+template <class X, int M>
+A2D_FUNCTION inline ADScalar<X, M> atan(const ADScalar<X, M> &r) {
+  // device compatible sin, cos
+  ADScalar<X, M> out(::atan(r.value));
+  X d = 1.0 / (1.0 + r.value * r.value);  // 1/(1+x^2)
+  for (int i = 0; i < M; i++) {
+    out.deriv[i] = d * r.deriv[i];
+  }
+  return out;
+}
+
+template <class X, int M>
+A2D_FUNCTION inline ADScalar<X, M> atan2(const ADScalar<X, M> &y,
+                                         const ADScalar<X, M> &x) {
+  /** atan2(y,x) => theta */
+  ADScalar<X, M> out(::atan2(y.value, x.value));
+  X denom = x.value * x.value + y.value * y.value;
+  X dx = -y.value / denom;
+  X dy = x.value / denom;
+
+  for (int i = 0; i < M; i++) {
+    out.deriv[i] = dx * x.deriv[0] + dy * y.deriv[0];
+  }
+  return out;
+}
+
+template <class X, int M>
+A2D_FUNCTION inline ADScalar<X, M> tanh(const ADScalar<X, M> &r) {
+  // for smooth sign function essentially
+  ADScalar<X, M> out(::tanh(r.value));
+  X d = 1.0 / ::cosh(r.value) / ::cosh(r.value);
+  for (int i = 0; i < M; i++) {
+    out.deriv[i] = d * r.deriv[i];
+  }
+  return out;
+}
 
 // template <int N>
 // struct __get_object_numeric_type<ADScalar<double,N>> {

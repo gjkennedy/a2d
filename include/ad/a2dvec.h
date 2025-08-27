@@ -65,5 +65,12 @@ class Vec {
   T V[N];
 };
 
+template <typename T>
+struct is_a2d_vector : std::false_type {};
+
+template <typename U, int N>
+struct is_a2d_vector<Vec<U, N>> : std::true_type {};
+
 }  // namespace A2D
+
 #endif  // A2D_VEC_H

@@ -173,6 +173,18 @@ class SymMat {
   T A[MAT_SIZE];
 };
 
+template <typename T>
+struct is_a2d_matrix : std::false_type {};
+
+template <typename U, int N, int M>
+struct is_a2d_matrix<Mat<U, N, M>> : std::true_type {};
+
+template <typename T>
+struct is_a2d_sym_matrix : std::false_type {};
+
+template <typename U, int N>
+struct is_a2d_sym_matrix<SymMat<U, N>> : std::true_type {};
+
 }  // namespace A2D
 
 #endif  // A2D_MAT_H

@@ -67,8 +67,8 @@ class MatInvExpr {
     static_assert(
         !(order == ADorder::FIRST and forder == ADorder::SECOND),
         "Can't perform second order forward with first order objects");
-    constexpr ADseed seed = conditional_value<ADseed, forder == ADorder::FIRST,
-                                              ADseed::b, ADseed::p>::value;
+    constexpr ADseed seed = conditional_value < ADseed,
+                     forder == ADorder::FIRST, ADseed::b, ADseed::p > ::value;
 
     T temp[N * N];
     MatMatMultCore<T, N, N, N, N, N, N, NORMAL, NORMAL>(
@@ -98,7 +98,7 @@ class MatInvExpr {
     // Compute the derivative contribution
     MatMatMultCore<T, N, N, N, N, N, N, TRANSPOSE, NORMAL>(
         get_data(Ainv), GetSeed<ADseed::b>::get_data(Ainv), temp);
-    MatMatMultScaleCore<T, N, N, N, N, N, N, NORMAL, TRANSPOSE, additive>(
+    MatMatMultScaleCore<T, N, N, N, N, N, N, NORMAL, TRANSPOSE, false>(
         T(-1.0), temp, get_data(Ainv), Ab);
 
     // - A^{-T} * Ap^{T} * Ab

@@ -53,6 +53,12 @@ class ADObj : public ADExpr<ADObj<T>, T> {
   }
 
   // Initialize with both values
+  template <typename U = T,
+            std::enable_if_t<std::is_reference<U>::value, bool> = true>
+  A2D_FUNCTION ADObj(T& A, T& Ab) : A(A), Ab(Ab) {}
+
+  template <typename U = T,
+            std::enable_if_t<!std::is_reference<U>::value, bool> = true>
   A2D_FUNCTION ADObj(const T& A, const T& Ab) : A(A), Ab(Ab) {}
 
   // Evaluation and derivatives
@@ -72,6 +78,39 @@ class ADObj : public ADExpr<ADObj<T>, T> {
   A2D_FUNCTION const T& value() const { return A; }
   A2D_FUNCTION T& bvalue() { return Ab; }
   A2D_FUNCTION const T& bvalue() const { return Ab; }
+
+  template <typename I, typename U = T,
+            std::enable_if_t<
+                is_a2d_vector<typename remove_const_and_refs<U>::type>::value,
+                bool> = true>
+  A2D_FUNCTION ADObj<type&> operator[](const I i) {
+    return ADObj<type&>(A[i], Ab[i]);
+  }
+
+  template <typename I, typename U = T,
+            std::enable_if_t<
+                is_a2d_vector<typename remove_const_and_refs<U>::type>::value,
+                bool> = true>
+  A2D_FUNCTION ADObj<type&> operator()(const I i) {
+    return ADObj<type&>(A[i], Ab[i]);
+  }
+
+  template <typename I, typename U = T,
+            std::enable_if_t<
+                is_a2d_matrix<typename remove_const_and_refs<U>::type>::value,
+                bool> = true>
+  A2D_FUNCTION ADObj<type&> operator()(const I i, const I j) {
+    return ADObj<type&>(A(i, j), Ab(i, j));
+  }
+
+  template <
+      typename I, typename U = T,
+      std::enable_if_t<
+          is_a2d_sym_matrix<typename remove_const_and_refs<U>::type>::value,
+          bool> = true>
+  A2D_FUNCTION ADObj<type&> operator()(const I i, const I j) {
+    return ADObj<type&>(A(i, j), Ab(i, j));
+  }
 
  private:
   T A;   // Object
@@ -136,6 +175,13 @@ class A2DObj : public A2DExpr<A2DObj<T>, T> {
       Ah = type(0.0);
     }
   }
+  template <typename U = T,
+            std::enable_if_t<std::is_reference<U>::value, bool> = true>
+  A2D_FUNCTION A2DObj(T& A, T& Ab, T& Ap, T& Ah)
+      : A(A), Ab(Ab), Ap(Ap), Ah(Ah) {}
+
+  template <typename U = T,
+            std::enable_if_t<!std::is_reference<U>::value, bool> = true>
   A2D_FUNCTION A2DObj(const T& A, const T& Ab, const T& Ap, const T& Ah)
       : A(A), Ab(Ab), Ap(Ap), Ah(Ah) {}
 
@@ -167,6 +213,39 @@ class A2DObj : public A2DExpr<A2DObj<T>, T> {
   A2D_FUNCTION const T& pvalue() const { return Ap; }
   A2D_FUNCTION T& hvalue() { return Ah; }
   A2D_FUNCTION const T& hvalue() const { return Ah; }
+
+  template <typename I, typename U = T,
+            std::enable_if_t<
+                is_a2d_vector<typename remove_const_and_refs<U>::type>::value,
+                bool> = true>
+  A2D_FUNCTION A2DObj<type&> operator[](const I i) {
+    return A2DObj<type&>(A[i], Ab[i], Ap[i], Ah[i]);
+  }
+
+  template <typename I, typename U = T,
+            std::enable_if_t<
+                is_a2d_vector<typename remove_const_and_refs<U>::type>::value,
+                bool> = true>
+  A2D_FUNCTION A2DObj<type&> operator()(const I i) {
+    return A2DObj<type&>(A[i], Ab[i], Ap[i], Ah[i]);
+  }
+
+  template <typename I, typename U = T,
+            std::enable_if_t<
+                is_a2d_matrix<typename remove_const_and_refs<U>::type>::value,
+                bool> = true>
+  A2D_FUNCTION A2DObj<type&> operator()(const I i, const I j) {
+    return A2DObj<type&>(A(i, j), Ab(i, j), Ap(i, j), Ah(i, j));
+  }
+
+  template <
+      typename I, typename U = T,
+      std::enable_if_t<
+          is_a2d_sym_matrix<typename remove_const_and_refs<U>::type>::value,
+          bool> = true>
+  A2D_FUNCTION A2DObj<type&> operator()(const I i, const I j) {
+    return A2DObj<type&>(A(i, j), Ab(i, j), Ap(i, j), Ah(i, j));
+  }
 
  private:
   T A;   // Object
