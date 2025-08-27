@@ -22,11 +22,11 @@ namespace A2D {
 */
 
 template <typename T, int N>
-A2D_FUNCTION void MatInv(const Mat<T, N, N>& A, Mat<T, N, N>& Ainv) {
+A2D_FUNCTION void MatInv(const Mat<T, N, N> &A, Mat<T, N, N> &Ainv) {
   MatInvCore<T, N>(get_data(A), get_data(Ainv));
 }
 template <typename T, int N>
-A2D_FUNCTION void MatInv(const SymMat<T, N>& S, SymMat<T, N>& Sinv) {
+A2D_FUNCTION void MatInv(const SymMat<T, N> &S, SymMat<T, N> &Sinv) {
   SymMatInvCore<T, N>(get_data(S), get_data(Sinv));
 }
 
@@ -56,7 +56,7 @@ class MatInvExpr {
   static constexpr MatOp NORMAL = MatOp::NORMAL;
   static constexpr MatOp TRANSPOSE = MatOp::TRANSPOSE;
 
-  A2D_FUNCTION MatInvExpr(Atype& A, Btype& Ainv) : A(A), Ainv(Ainv) {}
+  A2D_FUNCTION MatInvExpr(Atype &A, Btype &Ainv) : A(A), Ainv(Ainv) {}
 
   A2D_FUNCTION void eval() { MatInvCore<T, N>(get_data(A), get_data(Ainv)); }
 
@@ -67,8 +67,8 @@ class MatInvExpr {
     static_assert(
         !(order == ADorder::FIRST and forder == ADorder::SECOND),
         "Can't perform second order forward with first order objects");
-    constexpr ADseed seed = conditional_value<ADseed, forder == ADorder::FIRST,
-                                              ADseed::b, ADseed::p>::value;
+    constexpr ADseed seed = conditional_value < ADseed,
+                     forder == ADorder::FIRST, ADseed::b, ADseed::p > ::value;
 
     T temp[N * N];
     MatMatMultCore<T, N, N, N, N, N, N, NORMAL, NORMAL>(
@@ -120,17 +120,17 @@ class MatInvExpr {
         T(-1.0), temp, get_data(Ainv), GetSeed<ADseed::h>::get_data(A));
   }
 
-  Atype& A;
-  Btype& Ainv;
+  Atype &A;
+  Btype &Ainv;
 };
 
 template <class Atype, class Btype>
-A2D_FUNCTION auto MatInv(ADObj<Atype>& A, ADObj<Btype>& Ainv) {
+A2D_FUNCTION auto MatInv(ADObj<Atype> &A, ADObj<Btype> &Ainv) {
   return MatInvExpr<ADObj<Atype>, ADObj<Btype>>(A, Ainv);
 }
 
 template <class Atype, class Btype>
-A2D_FUNCTION auto MatInv(A2DObj<Atype>& A, A2DObj<Btype>& Ainv) {
+A2D_FUNCTION auto MatInv(A2DObj<Atype> &A, A2DObj<Btype> &Ainv) {
   return MatInvExpr<A2DObj<Atype>, A2DObj<Btype>>(A, Ainv);
 }
 
@@ -150,7 +150,7 @@ class MatInvTest : public A2DTest<T, Mat<T, N, N>, Mat<T, N, N>> {
   }
 
   // Evaluate the matrix-matrix product
-  Output eval(const Input& x) {
+  Output eval(const Input &x) {
     Mat<T, N, N> A;
     Mat<T, N, N> B;
     x.get_values(A);
@@ -159,7 +159,7 @@ class MatInvTest : public A2DTest<T, Mat<T, N, N>, Mat<T, N, N>> {
   }
 
   // Compute the derivative
-  void deriv(const Output& seed, const Input& x, Input& g) {
+  void deriv(const Output &seed, const Input &x, Input &g) {
     ADObj<Mat<T, N, N>> A;
     ADObj<Mat<T, N, N>> B;
 
@@ -171,8 +171,8 @@ class MatInvTest : public A2DTest<T, Mat<T, N, N>, Mat<T, N, N>> {
   }
 
   // Compute the second-derivative
-  void hprod(const Output& seed, const Output& hval, const Input& x,
-             const Input& p, Input& h) {
+  void hprod(const Output &seed, const Output &hval, const Input &x,
+             const Input &p, Input &h) {
     A2DObj<Mat<T, N, N>> A;
     A2DObj<Mat<T, N, N>> B;
 
