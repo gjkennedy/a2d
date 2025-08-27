@@ -67,8 +67,8 @@ class MatInvExpr {
     static_assert(
         !(order == ADorder::FIRST and forder == ADorder::SECOND),
         "Can't perform second order forward with first order objects");
-    constexpr ADseed seed = conditional_value < ADseed,
-                     forder == ADorder::FIRST, ADseed::b, ADseed::p > ::value;
+    constexpr ADseed seed = conditional_value<ADseed, forder == ADorder::FIRST,
+                                              ADseed::b, ADseed::p>::value;
 
     T temp[N * N];
     MatMatMultCore<T, N, N, N, N, N, N, NORMAL, NORMAL>(
