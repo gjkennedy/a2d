@@ -65,7 +65,7 @@ class MatInvExpr {
   template <ADorder forder>
   A2D_FUNCTION void forward() {
     static_assert(
-        !(order == ADorder::FIRST and forder == ADorder::SECOND),
+        !(order == ADorder::FIRST && forder == ADorder::SECOND),
         "Can't perform second order forward with first order objects");
     constexpr ADseed seed = conditional_value<ADseed, forder == ADorder::FIRST,
                                               ADseed::b, ADseed::p>::value;
