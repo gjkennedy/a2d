@@ -28,10 +28,10 @@ namespace A2D {
     }                                                                       \
     A2D_FUNCTION void forward() {                                           \
       a.forward();                                                          \
-      bval = (DERIVBODY)*a.bvalue();                                        \
+      bval = (DERIVBODY) * a.bvalue();                                      \
     }                                                                       \
     A2D_FUNCTION void reverse() {                                           \
-      a.bvalue() += (DERIVBODY)*bval;                                       \
+      a.bvalue() += (DERIVBODY) * bval;                                     \
       a.reverse();                                                          \
     }                                                                       \
     A2D_FUNCTION void bzero() {                                             \
@@ -86,15 +86,15 @@ A2D_1ST_UNARY_BASIC(UnaryNeg, operator-, -a.value(), -T(1.0))
       val = (FUNCBODY);                                                        \
     }                                                                          \
     A2D_FUNCTION void reverse() {                                              \
-      a.bvalue() += (DERIVBODY)*bval;                                          \
+      a.bvalue() += (DERIVBODY) * bval;                                        \
       a.reverse();                                                             \
     }                                                                          \
     A2D_FUNCTION void hforward() {                                             \
       a.hforward();                                                            \
-      pval = (DERIVBODY)*a.pvalue();                                           \
+      pval = (DERIVBODY) * a.pvalue();                                         \
     }                                                                          \
     A2D_FUNCTION void hreverse() {                                             \
-      a.hvalue() += (DERIVBODY)*hval;                                          \
+      a.hvalue() += (DERIVBODY) * hval;                                        \
       a.hreverse();                                                            \
     }                                                                          \
     A2D_FUNCTION void bzero() {                                                \
@@ -158,10 +158,10 @@ A2D_2ND_UNARY_BASIC(UnaryNeg2, operator-, -a.value(), -T(1.0))
     }                                                                   \
     A2D_FUNCTION void forward() {                                       \
       a.forward();                                                      \
-      bval = (DERIVBODY)*a.bvalue();                                    \
+      bval = (DERIVBODY) * a.bvalue();                                  \
     }                                                                   \
     A2D_FUNCTION void reverse() {                                       \
-      a.bvalue() += (DERIVBODY)*bval;                                   \
+      a.bvalue() += (DERIVBODY) * bval;                                 \
       a.reverse();                                                      \
     }                                                                   \
     A2D_FUNCTION void bzero() {                                         \
@@ -189,6 +189,8 @@ A2D_2ND_UNARY_BASIC(UnaryNeg2, operator-, -a.value(), -T(1.0))
   }
 
 // A2D_1ST_UNARY(OBJNAME, OPERNAME, FUNCBODY, TEMPBODY, DERIVBODY)
+A2D_1ST_UNARY(FabsExpr, fabs, (a.value() < 0.0 ? -a.value() : a.value()),
+              (a.value() < 0.0 ? -1.0 : 1.0), tmp)
 A2D_1ST_UNARY(SinExpr, sin, sin(a.value()), cos(a.value()), tmp)
 A2D_1ST_UNARY(CosExpr, cos, cos(a.value()), sin(a.value()), -tmp)
 A2D_1ST_UNARY(SqrtExpr, sqrt, sqrt(a.value()), 1.0 / val, 0.5 * tmp)
@@ -225,15 +227,15 @@ A2D_1ST_UNARY(ASinExpr, asin, asin(a.value()),
       tmp = (TEMPBODY);                                                        \
     }                                                                          \
     A2D_FUNCTION void reverse() {                                              \
-      a.bvalue() += (DERIVBODY)*bval;                                          \
+      a.bvalue() += (DERIVBODY) * bval;                                        \
       a.reverse();                                                             \
     }                                                                          \
     A2D_FUNCTION void hforward() {                                             \
       a.hforward();                                                            \
-      pval = (DERIVBODY)*a.pvalue();                                           \
+      pval = (DERIVBODY) * a.pvalue();                                         \
     }                                                                          \
     A2D_FUNCTION void hreverse() {                                             \
-      a.hvalue() += (DERIVBODY)*hval + (DERIV2BODY)*bval * a.pvalue();         \
+      a.hvalue() += (DERIVBODY) * hval + (DERIV2BODY) * bval * a.pvalue();     \
       a.hreverse();                                                            \
     }                                                                          \
     A2D_FUNCTION void bzero() {                                                \
@@ -269,6 +271,8 @@ A2D_1ST_UNARY(ASinExpr, asin, asin(a.value()),
   }
 
 // A2D_2ST_UNARY(OBJNAME, OPERNAME, FUNCBODY, TEMPBODY, DERIVBODY, DERIV2BODY)
+A2D_2ND_UNARY(FabsExpr2, fabs, (a.value() < 0.0 ? -a.value() : a.value()),
+              (a.value() < 0.0 ? -1.0 : 1.0), tmp, 0.0)
 A2D_2ND_UNARY(ExpExpr2, exp, exp(a.value()), val, tmp, tmp)
 A2D_2ND_UNARY(SinExpr2, sin, sin(a.value()), cos(a.value()), tmp, -val)
 A2D_2ND_UNARY(CosExpr2, cos, cos(a.value()), sin(a.value()), -tmp, -val)

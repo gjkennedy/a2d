@@ -271,7 +271,11 @@ A2D_FUNCTION T pow(T val, R exponent) {
 
 template <typename T, std::enable_if_t<is_scalar_type<T>::value, bool> = true>
 A2D_FUNCTION T fabs(T val) {
+#ifndef __CUDACC__
   return std::fabs(val);
+#else
+  return cuda::std::fabs(val);
+#endif
 }
 
 template <typename T, std::enable_if_t<is_scalar_type<T>::value, bool> = true>
