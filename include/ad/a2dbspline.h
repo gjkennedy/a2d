@@ -23,6 +23,11 @@ namespace A2D {
   coefficient holds t at 0 or 1 with zero derivatives, as the clamped Newton
   iteration of MBI does. The derivatives of t are 1 / s' and -s'' / s'^3 at
   the root.
+
+  Coefficients and arguments of ADScalar type carry their derivatives through
+  the spline in forward mode and in first order reverse mode. The spline is
+  linear in its coefficients, so its derivative with respect to coefficient j
+  is basis function j, and the root of the inverse moves by -N_j / s'.
 */
 
 // Knot i of the open uniform knot vector of M control points of order K
@@ -223,13 +228,103 @@ A2D_FUNCTION double BSplineInverseValue(const Coef& coef, double x, double& d1,
   return t;
 }
 
+// The scalar type of a spline from the types of its coefficients and argument
+template <class C, class R>
+using spline_scalar_t = std::conditional_t<is_passive_scalar_v<C>, R, C>;
+
+// Spline and slope at the real point t0 that carry the derivatives of the
+// coefficients, with the real curvature
+template <int K, class Coef, class S>
+A2D_FUNCTION void BSplineSums(const Coef& coef, double t0, S& val, S& slope,
+                              double& curvature) {
+  constexpr int M = Coef::size;
+  static_assert(M >= K, "A B-spline needs at least as many points as its order");
+
+  const int s = BSplineSpan<K, M>(t0);
+  double N0[K], N1[K], N2[K];
+  BSplineBasisFunctions<K, M>(t0, s, N0, N1, N2);
+
+  val = S(0.0);
+  slope = S(0.0);
+  curvature = 0.0;
+  for (int j = 0; j < K; j++) {
+    val += N0[j] * coef(s + j);
+    slope += N1[j] * coef(s + j);
+    curvature += N2[j] * RealPart(coef(s + j));
+  }
+}
+
+// Spline value and slope at t that carry the derivatives of t and of the
+// coefficients
+template <int K, class Coef, class R>
+A2D_FUNCTION spline_scalar_t<typename Coef::type, R> BSplineValueAD(
+    const Coef& coef, const R& t, spline_scalar_t<typename Coef::type, R>& d1) {
+  using S = spline_scalar_t<typename Coef::type, R>;
+  const double t0 = RealPart(t);
+  S val, slope;
+  double curvature;
+  BSplineSums<K>(coef, t0, val, slope, curvature);
+
+  // The step of t off its real part moves the value along the slope and the
+  // slope along the curvature
+  const R dt = t - t0;
+  d1 = slope + curvature * dt;
+  return val + RealPart(slope) * dt;
+}
+
+// Basis function value and slope at t that carry the derivatives of t
+template <int K, int M, class R>
+A2D_FUNCTION R BSplineBasisValueAD(int index, const R& t, R& d1) {
+  const double t0 = RealPart(t);
+  double g1, g2;
+  const double val = BSplineBasisValue<K, M>(index, t0, g1, g2);
+
+  const R dt = t - t0;
+  d1 = g1 + g2 * dt;
+  return val + g1 * dt;
+}
+
+// Inverse of the coordinate spline and its slope at x that carry the
+// derivatives of x and of the coefficients
+template <int K, class Coef, class R>
+A2D_FUNCTION spline_scalar_t<typename Coef::type, R> BSplineInverseValueAD(
+    const Coef& coef, const R& x, spline_scalar_t<typename Coef::type, R>& d1) {
+  using S = spline_scalar_t<typename Coef::type, R>;
+  constexpr int M = Coef::size;
+  const double x0 = RealPart(x);
+  double g1, g2;
+  const double t0 = BSplineInverseValue<K>(coef, x0, g1, g2);
+
+  // Outside the range of the coefficients the root holds with zero derivatives
+  if (!(x0 >= RealPart(coef(0))) || !(x0 <= RealPart(coef(M - 1)))) {
+    d1 = S(0.0);
+    return S(t0);
+  }
+
+  S val, slope;
+  double curvature;
+  BSplineSums<K>(coef, t0, val, slope, curvature);
+
+  // The root moves by the step of x less the step of the spline at fixed t
+  const S dt = ((x - x0) - (val - RealPart(val))) / RealPart(slope);
+  d1 = 1.0 / (slope + curvature * dt);
+  return t0 + dt;
+}
+
 // The spline of a vector table or of one column of a matrix table
 template <int K, class Samples>
 class BSplineEval {
  public:
+  template <class R>
+  using scalar_t = spline_scalar_t<typename Samples::type, R>;
+
   A2D_FUNCTION BSplineEval(const Samples& samples) : samples(samples) {}
   A2D_FUNCTION double operator()(double t, double& d1, double& d2) const {
     return BSplineValue<K>(samples, t, d1, d2);
+  }
+  template <class R>
+  A2D_FUNCTION scalar_t<R> value(const R& t, scalar_t<R>& d1) const {
+    return BSplineValueAD<K>(samples, t, d1);
   }
 
  private:
@@ -240,9 +335,16 @@ class BSplineEval {
 template <int K, int M>
 class BSplineBasisEval {
  public:
+  template <class R>
+  using scalar_t = R;
+
   A2D_FUNCTION BSplineBasisEval(int index) : index(index) {}
   A2D_FUNCTION double operator()(double t, double& d1, double& d2) const {
     return BSplineBasisValue<K, M>(index, t, d1, d2);
+  }
+  template <class R>
+  A2D_FUNCTION R value(const R& t, R& d1) const {
+    return BSplineBasisValueAD<K, M>(index, t, d1);
   }
 
  private:
@@ -253,9 +355,16 @@ class BSplineBasisEval {
 template <int K, class Samples>
 class BSplineInverseEval {
  public:
+  template <class R>
+  using scalar_t = spline_scalar_t<typename Samples::type, R>;
+
   A2D_FUNCTION BSplineInverseEval(const Samples& samples) : samples(samples) {}
   A2D_FUNCTION double operator()(double x, double& d1, double& d2) const {
     return BSplineInverseValue<K>(samples, x, d1, d2);
+  }
+  template <class R>
+  A2D_FUNCTION scalar_t<R> value(const R& x, scalar_t<R>& d1) const {
+    return BSplineInverseValueAD<K>(samples, x, d1);
   }
 
  private:
@@ -264,6 +373,10 @@ class BSplineInverseEval {
 
 template <class Eval, class A, class Ta, class T, bool CA>
 class SplineExpr : public ADExpr<SplineExpr<Eval, A, Ta, T, CA>, T> {
+  static_assert(std::is_same_v<typename Eval::template scalar_t<T>, T>,
+                "The coefficients of a spline share the scalar type of its "
+                "argument");
+
  public:
   using expr_t = typename std::conditional<CA, const ADExpr<A, Ta>,
                                            ADExpr<A, Ta>>::type;
@@ -272,9 +385,7 @@ class SplineExpr : public ADExpr<SplineExpr<Eval, A, Ta, T, CA>, T> {
       : fn(fn), a(a0.self()), val(0.0), bval(0.0), d1(0.0) {}
   A2D_FUNCTION void eval() {
     a.eval();
-    double g1, g2;
-    val = T(fn(RealPart(a.value()), g1, g2));
-    d1 = T(g1);
+    val = fn.value(a.value(), d1);
   }
   A2D_FUNCTION void forward() {
     a.forward();
@@ -301,6 +412,11 @@ class SplineExpr : public ADExpr<SplineExpr<Eval, A, Ta, T, CA>, T> {
 
 template <class Eval, class A, class Ta, class T, bool CA>
 class SplineExpr2 : public A2DExpr<SplineExpr2<Eval, A, Ta, T, CA>, T> {
+  static_assert(is_passive_scalar_v<T> &&
+                    std::is_same_v<typename Eval::template scalar_t<T>, T>,
+                "Second order spline expressions take passive coefficients "
+                "and arguments");
+
  public:
   using expr_t = typename std::conditional<CA, const A2DExpr<A, Ta>,
                                            A2DExpr<A, Ta>>::type;
@@ -356,23 +472,20 @@ class SplineExpr2 : public A2DExpr<SplineExpr2<Eval, A, Ta, T, CA>, T> {
   T val, bval, pval, hval, d1, d2;
 };
 
+// A passive argument gives a passive value, or an ADScalar value when the
+// coefficients carry derivatives
 template <class Eval, typename T,
           std::enable_if_t<is_passive_scalar_v<T>, int> = 0>
-A2D_FUNCTION T spline_eval(const Eval& fn, const T x) {
-  double d1, d2;
-  return T(fn(RealPart(x), d1, d2));
+A2D_FUNCTION auto spline_eval(const Eval& fn, const T x) {
+  typename Eval::template scalar_t<T> d1;
+  return fn.value(x, d1);
 }
 
 template <class Eval, typename T, int N,
           std::enable_if_t<is_passive_scalar_v<T>, int> = 0>
-A2D_FUNCTION ADScalar<T, N> spline_eval(const Eval& fn,
-                                        const ADScalar<T, N>& x) {
-  double d1, d2;
-  ADScalar<T, N> out(T(fn(RealPart(x.value), d1, d2)));
-  for (int i = 0; i < N; i++) {
-    out.deriv[i] = d1 * x.deriv[i];
-  }
-  return out;
+A2D_FUNCTION auto spline_eval(const Eval& fn, const ADScalar<T, N>& x) {
+  typename Eval::template scalar_t<ADScalar<T, N>> d1;
+  return fn.value(x, d1);
 }
 
 template <class Eval, class A, class Ta>

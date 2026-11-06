@@ -18,6 +18,7 @@ namespace A2D {
 template <class Vtype>
 class VecSamples {
  public:
+  using type = typename Vtype::type;
   static constexpr int size = get_vec_size<Vtype>::size;
   A2D_FUNCTION VecSamples(const Vtype& table) : table(table) {}
   A2D_FUNCTION auto operator()(int i) const { return table(i); }
@@ -30,6 +31,7 @@ class VecSamples {
 template <class Mtype>
 class MatColumnSamples {
  public:
+  using type = typename Mtype::type;
   static constexpr int size = get_matrix_rows<Mtype>::size;
   A2D_FUNCTION MatColumnSamples(const Mtype& table, int column)
       : table(table), column(column) {}

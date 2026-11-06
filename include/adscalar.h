@@ -210,6 +210,12 @@ class ADScalar {
   T deriv[N];
 };
 
+// The real part of an ADScalar is the real part of its value
+template <class X, int M>
+A2D_FUNCTION inline double RealPart(const ADScalar<X, M>& a) {
+  return RealPart(a.value);
+}
+
 template <class X, int M>
 A2D_FUNCTION inline ADScalar<X, M> operator+(const ADScalar<X, M>& l,
                                              const ADScalar<X, M>& r) {
