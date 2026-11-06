@@ -358,3 +358,129 @@ TEST_F(BSplineExpr, ADScalarMatchesReverse) {
   EXPECT_NEAR(f.deriv[0], ga, Tol(ga, 1e-13));
   EXPECT_NEAR(f.deriv[1], gb, Tol(gb, 1e-13));
 }
+
+/*
+  Coefficients and arguments that carry ADScalar derivatives, as the
+  derivatives with respect to data in amigo give them. The spline is linear in
+  its coefficients, so its derivative with respect to coefficient j is basis
+  function j.
+*/
+class BSplineCoefficients : public ::testing::Test {
+ protected:
+  BSplineCoefficients() {
+    const double v[7] = {0.3, -1.2, 0.8, 2.5, -0.4, 0.6, 1.1};
+    const double w[7] = {0.0, 0.05, 0.3, 0.45, 0.9, 1.4, 2.0};
+    for (int i = 0; i < 7; i++) {
+      vec(i) = v[i];
+      inv(i) = w[i];
+    }
+  }
+
+  // Coefficients with coefficient j seeded
+  void seed(int j, Vec<ADScalar<double, 1>, 7>& c,
+            Vec<ADScalar<double, 1>, 7>& ci) const {
+    for (int i = 0; i < 7; i++) {
+      c(i) = vec(i);
+      ci(i) = inv(i);
+    }
+    c(j).deriv[0] = 1.0;
+    ci(j).deriv[0] = 1.0;
+  }
+
+  // Slope of the inverse with coefficient j of the coordinate spline shifted
+  double inverse_slope(int j, double shift) const {
+    Vec<double, 7> c(inv);
+    c(j) += shift;
+    VecSamples<Vec<double, 7>> coef(c);
+    double d1, d2;
+    BSplineInverseValue<4>(coef, x0, d1, d2);
+    return d1;
+  }
+
+  // Root of the inverse with coefficient j of the coordinate spline shifted
+  double inverse_root(int j, double shift) const {
+    Vec<double, 7> c(inv);
+    c(j) += shift;
+    return bspline_inverse<4>(c, x0);
+  }
+
+  const double t0 = 0.37, x0 = 0.87, h = 1e-6;
+
+  Vec<double, 7> vec, inv;
+};
+
+// Forward mode gives the basis function and the motion of the root
+TEST_F(BSplineCoefficients, ForwardMatchesBasisAndDifferences) {
+  for (int j = 0; j < 7; j++) {
+    Vec<ADScalar<double, 1>, 7> c, ci;
+    seed(j, c, ci);
+
+    double b1, b2;
+    const double basis = BSplineBasisValue<4, 7>(j, t0, b1, b2);
+    ADScalar<double, 1> t(t0), x(x0);
+    EXPECT_NEAR(bspline<4>(c, t).deriv[0], basis, 1e-14) << "j " << j;
+    EXPECT_NEAR(bspline<4>(c, t0).deriv[0], basis, 1e-14) << "j " << j;
+
+    const double fd = (inverse_root(j, h) - inverse_root(j, -h)) / (2.0 * h);
+    EXPECT_NEAR(bspline_inverse<4>(ci, x).deriv[0], fd, Tol(fd, 1e-7))
+        << "j " << j;
+  }
+}
+
+// Reverse mode over ADScalar values gives the derivatives of the slopes with
+// respect to each coefficient
+TEST_F(BSplineCoefficients, ReverseOverForwardMatchesDifferences) {
+  for (int j = 0; j < 7; j++) {
+    Vec<ADScalar<double, 1>, 7> c, ci;
+    seed(j, c, ci);
+
+    double b1, b2;
+    const double basis = BSplineBasisValue<4, 7>(j, t0, b1, b2);
+    ADObj<ADScalar<double, 1>> t, f;
+    t.value() = t0;
+    auto stack = MakeStack(Eval(bspline<4>(c, t), f));
+    f.bvalue() = 1.0;
+    stack.reverse();
+    EXPECT_NEAR(f.value().deriv[0], basis, 1e-14) << "j " << j;
+    EXPECT_NEAR(t.bvalue().deriv[0], b1, Tol(b1, 1e-13)) << "j " << j;
+
+    ADObj<ADScalar<double, 1>> x, g;
+    x.value() = x0;
+    auto istack = MakeStack(Eval(bspline_inverse<4>(ci, x), g));
+    g.bvalue() = 1.0;
+    istack.reverse();
+    const double fd = (inverse_slope(j, h) - inverse_slope(j, -h)) / (2.0 * h);
+    EXPECT_NEAR(x.bvalue().deriv[0], fd, Tol(fd, 1e-6)) << "j " << j;
+  }
+}
+
+// An argument that carries a derivative moves the value along the slope and
+// the slope along the curvature
+TEST_F(BSplineCoefficients, ReverseOverForwardArgument) {
+  VecSamples<Vec<double, 7>> coef(vec);
+  double s1, s2;
+  const double s0 = BSplineValue<4>(coef, t0, s1, s2);
+
+  ADObj<ADScalar<double, 1>> t, f;
+  t.value() = t0;
+  t.value().deriv[0] = 1.0;
+  auto stack = MakeStack(Eval(bspline<4>(vec, t), f));
+  f.bvalue() = 1.0;
+  stack.reverse();
+  EXPECT_NEAR(f.value().value, s0, 1e-14);
+  EXPECT_NEAR(f.value().deriv[0], s1, Tol(s1, 1e-14));
+  EXPECT_NEAR(t.bvalue().value, s1, Tol(s1, 1e-14));
+  EXPECT_NEAR(t.bvalue().deriv[0], s2, Tol(s2, 1e-13));
+
+  double b1, b2;
+  const double basis = BSplineBasisValue<4, 7>(3, t0, b1, b2);
+  ADObj<ADScalar<double, 1>> u, g;
+  u.value() = t0;
+  u.value().deriv[0] = 1.0;
+  auto bstack = MakeStack(Eval(bspline_basis<4, 7>(3, u), g));
+  g.bvalue() = 1.0;
+  bstack.reverse();
+  EXPECT_NEAR(g.value().value, basis, 1e-14);
+  EXPECT_NEAR(g.value().deriv[0], b1, Tol(b1, 1e-14));
+  EXPECT_NEAR(u.bvalue().deriv[0], b2, Tol(b2, 1e-13));
+}
