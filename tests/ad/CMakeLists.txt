@@ -24,6 +24,7 @@ set(GTEST_TARGETS
     test_a2dmatinv
     test_a2dmatdet
     test_ad_expressions
+    test_bspline
     test_adscalar
 )
 

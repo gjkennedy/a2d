@@ -13,6 +13,7 @@
 
 // Operations
 
+#include "ad/a2dbspline.h"
 #include "ad/a2dgemm.h"
 #include "ad/a2dgreenstrain.h"
 #include "ad/a2dhadamard.h"
